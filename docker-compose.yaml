@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  mariadb:
+    container_name: leetcodedb
+    image: mariadb:10
+    volumes:
+      - "./$solution_dir/schema.sql:/docker-entrypoint-initdb.d/1.sql"
+      - "./$solution_dir/Solution.sql:/Solution.sql"
+    environment:
+      MARIADB_ROOT_PASSWORD: secret
+      MARIADB_DATABASE: example
+    ports:
+      - "3306:3306"
