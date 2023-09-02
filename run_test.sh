@@ -1,22 +1,25 @@
 #!/bin/bash
 
+function waitForMySQL() {
+  echo "Waiting for database to start..."
+  i=0
+  while ! curl --http0.9 localhost:3306 --output -; do
+    ((i++))
+    echo "Attempt $i failed. Sleeping 1 second"
+    if (( i >= 10 )); then
+      echo "Failed after $i attempts"
+      exit 1
+    fi
+    sleep 1
+  done
+  echo "Started"
+}
 
-#function getContainerHealth {
-#  docker inspect --format "{{.State.Health.Status}}" $1
-#}
-#
-#function waitContainer {
-#  while STATUS=$(getContainerHealth $1); [ $STATUS != "healthy" ]; do
-#    if [ $STATUS == "unhealthy" ]; then
-#      echo "Failed!"
-#      exit -1
-#    fi
-#    printf .
-#    lf=$'\n'
-#    sleep 1
-#  done
-#  printf "$lf"
-#}
+function runScript() {
+  container=$1
+  file_name=$2
+  docker exec -it ${container} bash -c 'mysql -h localhost -u root -psecret --database example <Solution.sql' > "${file_name}"
+}
 
 if [ $# -lt 1 ]; then
   echo 'USAGE'
@@ -33,19 +36,10 @@ container=$(docker-compose ps -q)
 
 echo "Container: ${container}"
 
-echo "Waiting for database to start..."
-while ! curl --http0.9 localhost:3306 --output -; do
-  sleep 1
-done
-echo "Started"
 
-# waitContainer "${container}"
+waitForMySQL
 
-# docker exec -it ${container} bash -c 'mysql -h 127.0.0.1 -u root -psecret --database example --batch -e "select * from Products"'  > sed 's/\t/","/g;s/^/"/;s/$/"/;s/\n//' > output.csv
-
-# docker exec -it ${container} bash -c 'mysql -h localhost -u root -psecret --database example --batch -e "select * from Products"' > output.csv
-
-docker exec -it ${container} bash -c 'mysql -h localhost -u root -psecret --database example <Solution.sql' > output.csv
+runScript "${container}" "output.csv"
 
 echo "Solution output:"
 cat output.csv
